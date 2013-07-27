@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!--要调度的对象 -->
+	<bean id="scheduleInfoAction" class="com.zhiyuan.pqdifgenerate.schedule.ScheduleInfoAction">
+		<property name="scheduler" ref="schedulerFactory" />
+	</bean>
+	<bean id="autoGenerateJob" class="com.zhiyuan.pqdifgenerate.schedule.AutoGenerateJob">
+	</bean>
+	<bean id="autoDeleteJob" class="com.zhiyuan.pqdifgenerate.schedule.AutoDeleteJob">
+	</bean>
+	<bean id="autoDetectiveJob" class="com.zhiyuan.pqdifgenerate.schedule.AutoDetectiveJob">
+	</bean>
+
+	<!-- 定义目标bean和bean中的方法 -->
+	<bean id="jobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="scheduleInfoAction" />
+		<property name="targetMethod" value="reScheduleJob" />
+		<!-- concurrent设为false，多个job不会并发运行 --> 
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="autoGenerateJobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="autoGenerateJob" />
+		<property name="targetMethod" value="doJob" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="autoDeleteJobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="autoDeleteJob" />
+		<property name="targetMethod" value="doJob" />
+		<property name="concurrent" value="false" />
+	</bean>
+	<bean id="autoDetectiveJobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="autoDetectiveJob" />
+		<property name="targetMethod" value="doJob" />
+		<property name="concurrent" value="false" />
+	</bean>
+
+	<!-- 定义触发的时间 -->
+	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="jobDetail" />
+		<property name="cronExpression" value="0/2 * * * * ?" />
+	</bean>
+	<bean id="autoGenerateJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="autoGenerateJobDetail" />
+		<property name="cronExpression" value="0 1 0 * * ?" />
+	</bean>
+	<bean id="autoDeleteJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="autoDeleteJobDetail" />
+		<property name="cronExpression" value="0 1 0 * * ?" />
+	</bean>
+	<bean id="autoDetectiveJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="autoDetectiveJobDetail" />
+		<property name="cronExpression" value="0 1 0 * * ?" />
+	</bean>
+
+	<!-- 总调度管理工厂 -->
+	<bean id="schedulerFactory"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean" scope="singleton">
+		<property name="triggers">
+			<list>
+			<!-- 
+				<ref local="cronTrigger" />
+			 -->
+				<ref local="autoDeleteJobTrigger" />
+				<ref local="autoGenerateJobTrigger" />
+				<ref local="autoDetectiveJobTrigger" />
+			</list>
+		</property>
+		<!-- 启动时延期2秒开始任务 -->
+		<property name="startupDelay" value="0" />
+		<property name="quartzProperties">
+			<props>
+				<prop key="org.quartz.jobStore.class">org.quartz.simpl.RAMJobStore</prop>
+			</props>
+		</property>
+		<!-- 配置线程池 
+		<property name="taskExecutor" ref="executor" />
+		-->
+	</bean>
+	
+	<!-- 线程执行器配置，用于任务注册 -->
+	<bean id="executor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="10" />
+		<property name="maxPoolSize" value="100" />
+		<property name="queueCapacity" value="500" />
+	</bean>
+</beans>  
